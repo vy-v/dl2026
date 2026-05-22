@@ -1,0 +1,300 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{
+  a4paper,
+  total={170mm,257mm},
+  left=20mm,
+  top=20mm,
+}
+\usepackage{graphicx}
+\usepackage{titling}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyvrb}
+\usepackage{float}
+\usepackage{amsmath}
+
+\definecolor{darkblue}{rgb}{0.0, 0.0, 0.5}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{formatcom=\color{darkblue}}
+\setlength{\parindent}{0pt}
+
+\title{\textbf{DEEP LEARNING} \\
+{\Large \textbf{Report 4: Neural Network}}}
+\date{May 2026}
+
+\usepackage{fancyhdr}
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[L]{\thedate}
+  \fancyfoot[R]{\thepage}
+  \fancyhead[L]{University of Science and Technology of Hanoi}
+  \fancyhead[R]{Deep Learning}
+}
+
+\makeatletter
+\def\@maketitle{%
+  \newpage
+  \vskip 1em
+  \begin{center}
+  \let \footnote \thanks
+    {\LARGE \@title \par}%
+    \vskip 1em
+  \end{center}
+  \par
+  \vskip 1em}
+\makeatother
+
+\begin{document}
+
+\pagestyle{plain}
+\maketitle
+
+\noindent\begin{tabular}{@{}ll}
+  Student: & Vu Ha Vy -- 2540112 \\
+\end{tabular}
+
+\section*{Implementation}
+
+\textbf{Sigmoid activation function}
+
+Each neuron applies the sigmoid activation function:
+
+\[
+\sigma(z) = \frac{1}{1 + e^{-z}}
+\]
+
+where \(z\) is the linear combination between the inputs and weights.
+
+\begin{verbatim}
+def sigmoid(z):
+    return 1.0 / (1.0 + math.exp(-z))
+\end{verbatim}
+
+\textbf{Neuron implementation}
+
+A neuron stores its weights and bias. During feedforward, the neuron
+computes the weighted sum:
+
+\[
+z = \sum_{i=1}^{n} x_i w_i + b
+\]
+
+and then applies the sigmoid activation:
+
+\[
+a = \sigma(z)
+\]
+
+\begin{verbatim}
+class Neuron:
+    def __init__(self, weights, bias):
+        self.weights = weights
+        self.bias = bias
+    
+    def feedforward(self, inputs):  
+        z = 0
+        for i in range(len(inputs)):
+            z += inputs[i] * self.weights[i]
+        z += self.bias
+
+        a = sigmoid(z)
+        return a
+\end{verbatim}
+
+\textbf{Layer implementation}
+
+A layer is composed of several neurons. The outputs of all neurons are
+stored in a list and returned as the output of the layer.
+
+\begin{verbatim}
+class Layer:                  
+    def __init__(self, neurons):
+        self.neurons = neurons
+    
+    def feedforward(self, inputs): 
+        outputs = []
+
+        for neuron in self.neurons:
+            output = neuron.feedforward(inputs)
+            outputs.append(output)
+
+        return outputs
+\end{verbatim}
+
+\textbf{Neural network implementation}
+
+The neural network is implemented as a sequence of layers.
+The output of one layer becomes the input of the next layer. For each layer:
+
+\[
+z^{(l)} = (W^{(l)})^T a^{(l-1)} + b^{(l)}
+\]
+
+\[
+a^{(l)} = \sigma(z^{(l)})
+\]
+
+\begin{verbatim}
+class NeuralNetwork:            
+    def __init__(self, layers):
+        self.layers = layers
+    
+    def feedforward(self, inputs):
+        outputs = inputs
+        
+        for layer in self.layers:
+            outputs = layer.feedforward(outputs)
+        
+        return outputs
+\end{verbatim}
+
+\textbf{Neural Network Architecture}
+
+The architecture of the neural network is read from the file
+\texttt{nn.txt}. The first line contains the number of layers.
+The following lines contain the number of neurons in each layer. For this experiment:
+
+\begin{itemize}
+    \item Input layer: 2 neurons
+    \item Hidden layer: 2 neurons
+    \item Output layer: 1 neuron
+\end{itemize}
+
+% \begin{verbatim}
+% def read_txt(file_path):
+%     with open(file_path, "r") as f:
+%         lines = f.readlines()
+
+%     num_layers = int(lines[0].strip())
+%     layer_sizes = [int(line.strip()) 
+%                    for line in lines[1:num_layers+1]]
+
+%     return num_layers, layer_sizes
+
+% num_layers, layer_sizes = read_txt("nn.txt")
+% print(num_layers, layer_sizes)
+% \end{verbatim}
+
+The network is initialized using object oriented programming.
+Each layer contains neurons, and each neuron contains weights and bias.
+The weights and bias are initialized randomly in the interval \([0,1]\).
+
+\begin{verbatim}
+def build_nn(layer_sizes):
+    layers = []
+
+    for i in range(1, len(layer_sizes)):
+        n_inputs  = layer_sizes[i - 1]
+        n_neurons = layer_sizes[i]
+
+        neurons = [
+            Neuron(
+                weights=[random.uniform(0, 1)
+                         for _ in range(n_inputs)],
+                bias=random.uniform(0, 1)
+            )
+            for _ in range(n_neurons)
+        ]
+
+        layers.append(Layer(neurons))
+
+    return NeuralNetwork(layers)
+
+neural_network = build_nn(layer_sizes)
+\end{verbatim}
+
+\section*{XOR Experiment}
+
+The XOR problem cannot be solved using a single logistic regression
+classifier because the data is not linearly separable. The XOR truth table is:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ccc}
+\toprule
+$x_1$ & $x_2$ & $x_1 \oplus x_2$ \\
+\midrule
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Truth table of XOR}
+\end{table}
+
+The hidden layer is designed using two intermediate logical operations:
+
+\begin{itemize}
+    \item NOT($x_1$ AND $x_2$)
+    \item $x_1$ OR $x_2$
+\end{itemize}
+
+The output layer computes:
+
+\[
+\text{XOR} = \text{NOT}(x_1 \land x_2) \land (x_1 \lor x_2)
+\]
+
+The weights are initialized exactly as in the lecture slides.
+
+\begin{verbatim}
+neural_network.layers[0].neurons[0].weights = [-1, -1]
+neural_network.layers[0].neurons[0].bias = 1.5
+
+neural_network.layers[0].neurons[1].weights = [1, 1]
+neural_network.layers[0].neurons[1].bias = -0.5
+
+neural_network.layers[1].neurons[0].weights = [1, 1]
+neural_network.layers[1].neurons[0].bias = -1.5
+\end{verbatim}
+
+\section*{Results}
+
+The network is tested with the four possible XOR inputs.
+
+\begin{verbatim}
+data = [[0,0], [0,1], [1,0], [1,1]]
+
+for i in data:
+    output = neural_network.feedforward(i)
+    print(i, ":", round(output[0], 5))
+\end{verbatim}
+
+The obtained outputs are:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cccc}
+\toprule
+Input & Expected Output & Network Output & Predicted Class \\
+\midrule
+(0, 0) & 0 & 0.42436 & 0 \\
+(0, 1) & 1 & 0.43657 & 0 \\
+(1, 0) & 1 & 0.43657 & 0 \\
+(1, 1) & 0 & 0.42436 & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Results of the XOR neural network}
+\end{table}
+
+Using the decision threshold $0.5$, all four outputs are classified as 0.
+Therefore, the network gives the correct result for $(0,0)$ and $(1,1)$,
+but gives the wrong result for $(0,1)$ and $(1,0)$. This is because the sigmoid activation function does not return exact boolean values 0 and 1. 
+For example, for input $(0,1)$, the two hidden neurons return approximately
+$0.62246$ and $0.62246$. Although $(0,1)$ should belong to class 1, the final output is still below $0.5$, so it is classified as 0. The output neuron is computed by:
+
+\[
+z = 0.62246 + 0.62246 - 1.5 = -0.25508
+\]
+
+\[
+\hat{y} = \sigma(-0.25508) = 0.43657
+\]
+
+
+
+\end{document}
